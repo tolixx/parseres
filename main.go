@@ -75,8 +75,8 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	txn, stmt := startTransaction(db)
 
 	var (
-		person, tp, url, snippet string
-		se                       int
+		person, tp, url, title, snippet string
+		se                              int
 	)
 
 	number := 0
@@ -90,7 +90,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		text := scanner.Text()
 		d := strings.Split(text, ":::")
-		if len(d) != 4 {
+		if len(d) != 5 {
 			log.Printf("Invalid len >> %d", len(d))
 			continue
 		}
@@ -108,13 +108,15 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			continue
 		}
 
-		person = d[0]
 		tp = d[1]
-		snippet = d[2]
+		url = d[2]
+		title = d[3]
+		snippet = d[4]
 
 		valid++
-		stmt.Exec(person, qt, se, tp, url, snippet)
-		if valid%100 == 0 {
+		stmt.Exec(person, qt, se, tp, url, title, snippet)
+		if valid%10000 == 0 {
+
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
