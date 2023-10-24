@@ -76,7 +76,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 	var (
 		person, tp, url, snippet string
-		qt, se                   int
+		se                       int
 	)
 
 	number := 0
