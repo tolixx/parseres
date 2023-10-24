@@ -99,7 +99,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		fqp := strings.Split(fq, " ")
 		l := len(fqp)
 
-		person = strings.Join(fqp[:l-2], " ")
+		person = strings.Title(strings.Join(fqp[:l-1], " "))
 		t := fqp[l-1]
 
 		qt, ok := bing[t]
@@ -115,8 +115,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		valid++
 		stmt.Exec(person, qt, se, tp, url, title, snippet)
-		if valid%10000 == 0 {
-
+		if valid%100000 == 0 {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
