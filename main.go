@@ -53,7 +53,7 @@ func startTransaction(db *sql.DB) (*sql.Tx, *sql.Stmt) {
 		log.Fatalf("Could not start TX")
 	}
 
-	stmt, err := txn.Prepare(pq.CopyIn("new_results", "person", "qt", "se", "tp", "url", "snippet"))
+	stmt, err := txn.Prepare(pq.CopyIn("new_results", "person", "qt", "se", "tp", "url", "title", "snippet"))
 	if err != nil {
 		log.Fatalf("Could not Prepare %v", err)
 	}
