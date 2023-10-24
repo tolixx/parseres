@@ -91,6 +91,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		text := scanner.Text()
 		d := strings.Split(text, ":::")
 		if len(d) != 4 {
+			log.Printf("Invalid len >> %d", len(d))
 			continue
 		}
 
@@ -103,6 +104,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		qt, ok := bing[t]
 		if !ok {
+			log.Printf("Invalid index: %s", t)
 			continue
 		}
 
@@ -112,7 +114,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		valid++
 		stmt.Exec(person, qt, se, tp, url, snippet)
-		if valid%10000 == 0 {
+		if valid%100 == 0 {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
