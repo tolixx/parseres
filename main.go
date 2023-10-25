@@ -99,7 +99,6 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			x := d[4:]
 			d[4] = strings.Join(x, ":::")
 			overLen++
-			log.Printf("v : %s", d[4])
 		}
 
 		fq := d[0]
@@ -126,7 +125,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		valid++
 		stmt.Exec(person, qt, se, url, title, snippet)
-		if number%250000 == 0 {
+		if number%300000 == 0 {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
