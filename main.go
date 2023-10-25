@@ -119,6 +119,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			badTypes++
 			continue
 		}
+
 		url = d[2]
 		title = d[3]
 		snippet = d[4]
@@ -129,7 +130,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
-			log.Printf("#%d lines, %d valid, speed : %.2f, bad systems: %d, bad types: %d, overlen :%d", number, valid, sp, invalidSystems, badTypes, overLen)
+			log.Printf("#%d lines, %d valid, speed : %.2f, Bad systems: %d, bad types: %d, overlen :%d", number, valid, sp, invalidSystems, badTypes, overLen)
 		}
 
 	}
