@@ -15,7 +15,10 @@ import (
 
 var Connection = "host=127.0.0.1 dbname=parsing user=parser password=N0_1caNw@iT sslmode=disable"
 
-var bing = map[string]int{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8}
+var systems = map[string]int{"b": 0, "a": 1}
+
+var qt = []map[string]int{{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8},
+	{"inurl:facebook.com": 0, "inurl:instagram.com": 1, "inurl:tiktok.com": 2, "inurl:reddit.com": 3, "inurl:linkedin.com": 4, "inurl:pinterest.com": 5, "inurl:telegram.com": 6, "inurl:tumblr.com": 7, "inurl:patreon.com": 8}}
 
 func main() {
 	args := os.Args[1:]
@@ -53,7 +56,7 @@ func startTransaction(db *sql.DB) (*sql.Tx, *sql.Stmt) {
 		log.Fatalf("Could not start TX")
 	}
 
-	stmt, err := txn.Prepare(pq.CopyIn("new_results", "person", "qt", "se", "tp", "url", "title", "snippet"))
+	stmt, err := txn.Prepare(pq.CopyIn("new_results", "person", "qt", "se", "url", "title", "snippet"))
 	if err != nil {
 		log.Fatalf("Could not Prepare %v", err)
 	}
@@ -75,24 +78,28 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	txn, stmt := startTransaction(db)
 
 	var (
-		person, tp, url, title, snippet string
-		se                              int
+		person, url, title, snippet string
 	)
 
 	number := 0
 	valid := 0
 	st := time.Now()
 
-	se = 0
+	invalidSystems := 0
+	badTypes := 0
+	overLen := 0
 
 	for scanner.Scan() {
 		number++
 
 		text := scanner.Text()
 		d := strings.Split(text, ":::")
-		if len(d) != 5 {
-			log.Printf("Invalid len >> %d", len(d))
-			continue
+		if len(d) > 5 {
+			//-- pack ==
+			x := d[4:]
+			d[4] = strings.Join(x, ":::")
+			overLen++
+			log.Printf("with OL : %v", d)
 		}
 
 		fq := d[0]
@@ -102,30 +109,33 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		person = strings.Title(strings.Join(fqp[:l-1], " "))
 		t := fqp[l-1]
 
-		qt, ok := bing[t]
+		se, ok := systems[d[1]]
 		if !ok {
-			log.Printf("Invalid index: %s", t)
+			invalidSystems++
 			continue
 		}
 
-		tp = d[1]
+		qt, ok := qt[se][t]
+		if !ok {
+			badTypes++
+			continue
+		}
 		url = d[2]
 		title = d[3]
 		snippet = d[4]
 
 		valid++
-		stmt.Exec(person, qt, se, tp, url, title, snippet)
-		if valid%100000 == 0 {
+		stmt.Exec(person, qt, se, url, title, snippet)
+		if number%250000 == 0 {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
-			log.Printf("#%d lines, %d valid, speed : %.2f", number, valid, sp)
+			log.Printf("#%d lines, %d valid, speed : %.2f, bad systems: %d, bad types: %d, overlen :%d", number, valid, sp, invalidSystems, badTypes, overLen)
 		}
 
 	}
 
 	commitTransaction(txn, stmt)
-
 	return nil
 }
 
