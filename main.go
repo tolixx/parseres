@@ -99,7 +99,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			x := d[4:]
 			d[4] = strings.Join(x, ":::")
 			overLen++
-			log.Printf("with OL : %v", d)
+			log.Printf("v : %s", d[4])
 		}
 
 		fq := d[0]
