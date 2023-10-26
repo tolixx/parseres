@@ -56,6 +56,9 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 		}
 		t[name] = id
 		lines++
+		if lines%1000000 == 0 {
+			log.Printf("Loaded %d lines", lines)
+		}
 	}
 
 	log.Printf(" => Keywords loaded: %d ok, %d errors", lines, errs)
