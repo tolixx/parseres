@@ -32,6 +32,36 @@ func main() {
 
 }
 
+func loadPersons(db *sql.DB) (map[string]int, error) {
+	q := "SELECT id,name FROM persons"
+	t := make(map[string]int)
+
+	res, err := db.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	var id int
+	var name string
+
+	errs := 0
+	lines := 0
+
+	log.Printf("Starting loading persons...")
+	for res.Next() {
+		err := res.Scan(&id, &name)
+		if err != nil {
+			errs++
+			continue
+		}
+		t[name] = id
+		lines++
+	}
+
+	log.Printf(" => Keywords loaded: %d ok, %d errors", lines, errs)
+	return t, nil
+}
+
 func startFiller(filename string) error {
 	reader, err := os.Open(filename)
 	if err != nil {
@@ -89,6 +119,11 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	badTypes := 0
 	overLen := 0
 
+	persons, err := loadPersons(db)
+	if err != nil {
+		return err
+	}
+
 	for scanner.Scan() {
 		number++
 
@@ -106,6 +141,13 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		l := len(fqp)
 
 		person = strings.Title(strings.Join(fqp[:l-1], " "))
+		_, ok := persons[person]
+
+		if !ok {
+			log.Printf("Could not found: %s", person)
+			continue
+		}
+
 		t := fqp[l-1]
 
 		se, ok := systems[d[1]]
