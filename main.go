@@ -111,7 +111,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	txn, stmt := startTransaction(db)
 
 	var (
-		person, url, title, snippet string
+		person, url string
 	)
 
 	number := 0
