@@ -110,9 +110,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	scanner := bufio.NewScanner(reader)
 	txn, stmt := startTransaction(db)
 
-	var (
-		person, url string
-	)
+	var person, url string
 
 	number := 0
 	valid := 0
@@ -120,7 +118,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 	invalidSystems := 0
 	badTypes := 0
-	overLen := 0
+	badLookups := 0
 
 	persons, err := loadPersons(db)
 	if err != nil {
@@ -141,7 +139,8 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		personid, ok := persons[person]
 
 		if !ok {
-			log.Printf("Could not found: %s", person)
+			log.Printf("\t%s", person)
+			badLookups++
 			continue
 		}
 
@@ -167,7 +166,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
-			log.Printf("#%d lines, %d valid, speed : %.2f, Bad systems: %d, bad types: %d, overlen :%d", number, valid, sp, invalidSystems, badTypes, overLen)
+			log.Printf("#%d lines, %d valid, speed : %.2f, Bad systems: %d, bad types: %d, bad lookups: %d", number, valid, sp, invalidSystems, badTypes, badLookups)
 		}
 
 	}
