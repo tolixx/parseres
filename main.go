@@ -72,12 +72,11 @@ func loadPersons(db *sql.DB) (Persons, error) {
 	}
 
 	fmt.Printf("\n")
-
 	log.Printf(" => Keywords loaded: %d ok, %d errors", lines, errs)
 	return t, nil
 }
 
-func startFiller(filename string) (reterr error) {
+func startFiller(filename string) error {
 
 	info, err := os.Stat(filename)
 	if err != nil {
@@ -89,9 +88,7 @@ func startFiller(filename string) (reterr error) {
 		return fmt.Errorf("postgre open error: %v", err)
 	}
 
-	defer func() {
-		reterr = db.Close()
-	}()
+	defer db.Close()
 
 	persons, err := loadPersons(db)
 
@@ -134,15 +131,13 @@ func processDirectory(filename string, db *sql.DB, persons Persons) error {
 	return nil
 }
 
-func processFile(filename string, db *sql.DB, persons Persons) (reterr error) {
+func processFile(filename string, db *sql.DB, persons Persons) error {
 	log.Printf("Starting to process file: %s", filename)
 	reader, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("Error opening file %s (%v) ", filename, err)
 	}
-	defer func() {
-		reterr = reader.Close()
-	}()
+	defer reader.Close()
 
 	currentFile = filename
 
