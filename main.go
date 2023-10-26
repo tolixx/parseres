@@ -68,6 +68,8 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 		}
 	}
 
+	fmt.Printf("\n")
+
 	log.Printf(" => Keywords loaded: %d ok, %d errors", lines, errs)
 	return t, nil
 }
@@ -141,7 +143,7 @@ func processFile(filename string, db *sql.DB, persons map[string]int) error {
 
 	log.Printf("file extension is: %s", ext)
 
-	if ext == "gz" {
+	if ext == ".gz" {
 		r, err = gzip.NewReader(reader)
 		if err != nil {
 			return fmt.Errorf("could not open gz: %v", err)
