@@ -16,6 +16,7 @@ import (
 var Connection = "host=127.0.0.1 dbname=parsing user=parser password=N0_1caNw@iT sslmode=disable"
 
 var systems = map[string]int{"b": 0, "a": 1}
+var currentFile string
 
 var qt = []map[string]int{{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8},
 	{"inurl:facebook.com": 0, "inurl:instagram.com": 1, "inurl:tiktok.com": 2, "inurl:reddit.com": 3, "inurl:linkedin.com": 4, "inurl:pinterest.com": 5, "inurl:telegram.com": 6, "inurl:tumblr.com": 7, "inurl:patreon.com": 8}}
@@ -66,11 +67,11 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 }
 
 func startFiller(filename string) error {
-	reader, err := os.Open(filename)
+
+	fileinfo, err := os.Stat(filename)
 	if err != nil {
-		return fmt.Errorf("Error opening file %s (%v) ", filename, err)
+		return err
 	}
-	defer reader.Close()
 
 	db, err := openDb(Connection)
 	if err != nil {
@@ -78,8 +79,53 @@ func startFiller(filename string) error {
 	}
 
 	defer db.Close()
+	persons, err := loadPersons(db)
 
-	return fillResults(db, reader)
+	if err != nil {
+		return err
+	}
+
+	if fileinfo.IsDir() {
+		return processDirectory(filename, db, persons)
+	}
+
+	return processFile(filename, db, persons)
+
+}
+
+func processDirectory(filename string, db *sql.DB, persons map[string]int) error {
+	d, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+
+	files, err := d.ReadDir(0)
+	if err != nil {
+		return err
+	}
+
+	for index := range files {
+		file := files[index]
+		name := file.Name()
+
+		if err := processFile(filename+"/"+name, db, persons); err != nil {
+			log.Printf("Failed to process : %s", name)
+		}
+	}
+
+	return nil
+}
+
+func processFile(filename string, db *sql.DB, persons map[string]int) error {
+	reader, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("Error opening file %s (%v) ", filename, err)
+	}
+	defer reader.Close()
+
+	currentFile = filename
+
+	return fillResults(db, reader, persons)
 }
 
 func startTransaction(db *sql.DB) (*sql.Tx, *sql.Stmt) {
@@ -106,11 +152,25 @@ func commitTransaction(txn *sql.Tx, stmt *sql.Stmt) {
 	}
 }
 
-func fillResults(db *sql.DB, reader io.Reader) error {
+func commitAndStartTransaction(db *sql.DB, txn *sql.Tx, stmt *sql.Stmt) (*sql.Tx, *sql.Stmt) {
+	commitTransaction(txn, stmt)
+	return startTransaction(db)
+}
+
+func parseKey(r string) (string, string) {
+	fqp := strings.Split(r, " ")
+	l := len(fqp)
+
+	person := strings.TrimSpace(strings.ToLower(strings.Join(fqp[:l-1], " ")))
+	t := fqp[l-1]
+	return person, t
+}
+
+func fillResults(db *sql.DB, reader io.Reader, persons map[string]int) error {
 	scanner := bufio.NewScanner(reader)
 	txn, stmt := startTransaction(db)
 
-	var person, url string
+	var url string
 
 	number := 0
 	valid := 0
@@ -120,31 +180,17 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 	badTypes := 0
 	badLookups := 0
 
-	persons, err := loadPersons(db)
-	if err != nil {
-		return err
-	}
-
 	for scanner.Scan() {
 		number++
 
-		text := scanner.Text()
-		d := strings.Split(text, ":::")
-
-		fq := d[0]
-		fqp := strings.Split(fq, " ")
-		l := len(fqp)
-
-		person = strings.TrimSpace(strings.ToLower(strings.Join(fqp[:l-1], " ")))
+		d := strings.Split(scanner.Text(), ":::")
+		person, t := parseKey(d[0])
 		personid, ok := persons[person]
 
 		if !ok {
-			log.Printf("\t%s", person)
 			badLookups++
 			continue
 		}
-
-		t := fqp[l-1]
 
 		se, ok := systems[d[1]]
 		if !ok {
@@ -163,10 +209,9 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		stmt.Exec(personid, qt, se, url)
 
 		if number%300000 == 0 {
-			commitTransaction(txn, stmt)
-			txn, stmt = startTransaction(db)
+			txn, stmt = commitAndStartTransaction(db, txn, stmt)
 			sp := float64(number) / time.Now().Sub(st).Seconds()
-			log.Printf("#%d lines, %d valid, speed : %.2f, Bad systems: %d, bad types: %d, bad lookups: %d", number, valid, sp, invalidSystems, badTypes, badLookups)
+			log.Printf("#%d lines, %d valid, speed : %.2f, Bad systems: %d, bad types: %d, bad lookups: %d (%s)", number, valid, sp, invalidSystems, badTypes, badLookups, currentFile)
 		}
 
 	}
