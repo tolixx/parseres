@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"database/sql"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -122,10 +124,20 @@ func processFile(filename string, db *sql.DB, persons map[string]int) error {
 		return fmt.Errorf("Error opening file %s (%v) ", filename, err)
 	}
 	defer reader.Close()
-
 	currentFile = filename
 
-	return fillResults(db, reader, persons)
+	var r io.Reader = reader
+
+	ext := path.Ext(filename)
+	if ext == "gz" {
+		r, err = gzip.NewReader(reader)
+		if err != nil {
+			return fmt.Errorf("could not open gz: %v", err)
+		}
+		log.Printf("Processing as gzip here")
+	}
+
+	return fillResults(db, r, persons)
 }
 
 func startTransaction(db *sql.DB) (*sql.Tx, *sql.Stmt) {
