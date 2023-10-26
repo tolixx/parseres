@@ -51,6 +51,10 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 	lines := 0
 
 	log.Printf("Starting loading persons...")
+	for i := 0; i < 89; i++ {
+		fmt.Printf(".")
+	}
+	fmt.Printf("\r")
 	for res.Next() {
 		err := res.Scan(&id, &name)
 		if err != nil {
@@ -60,7 +64,7 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 		t[strings.ToLower(name)] = id
 		lines++
 		if lines%1000000 == 0 {
-			fmt.Printf(".")
+			fmt.Printf("o")
 		}
 	}
 
