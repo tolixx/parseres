@@ -89,7 +89,7 @@ func startTransaction(db *sql.DB) (*sql.Tx, *sql.Stmt) {
 		log.Fatalf("Could not start TX")
 	}
 
-	stmt, err := txn.Prepare(pq.CopyIn("new_results", "person", "qt", "se", "url", "title", "snippet"))
+	stmt, err := txn.Prepare(pq.CopyIn("new_results", "personid", "qt", "se", "url"))
 	if err != nil {
 		log.Fatalf("Could not Prepare %v", err)
 	}
@@ -132,19 +132,13 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 
 		text := scanner.Text()
 		d := strings.Split(text, ":::")
-		if len(d) > 5 {
-			//-- pack ==
-			x := d[4:]
-			d[4] = strings.Join(x, ":::")
-			overLen++
-		}
 
 		fq := d[0]
 		fqp := strings.Split(fq, " ")
 		l := len(fqp)
 
 		person = strings.Title(strings.Join(fqp[:l-1], " "))
-		_, ok := persons[person]
+		personid, ok := persons[person]
 
 		if !ok {
 			log.Printf("Could not found: %s", person)
@@ -166,11 +160,9 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		}
 
 		url = d[2]
-		title = d[3]
-		snippet = d[4]
-
 		valid++
-		stmt.Exec(person, qt, se, url, title, snippet)
+		stmt.Exec(personid, qt, se, url)
+
 		if number%300000 == 0 {
 			commitTransaction(txn, stmt)
 			txn, stmt = startTransaction(db)
