@@ -60,7 +60,7 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 		t[strings.ToLower(name)] = id
 		lines++
 		if lines%1000000 == 0 {
-			log.Printf("Loaded %d lines", lines)
+			fmt.Printf(".")
 		}
 	}
 
@@ -101,6 +101,7 @@ func processDirectory(filename string, db *sql.DB, persons map[string]int) error
 		return err
 	}
 
+	log.Printf("starting to process directory : %s", filename)
 	files, err := d.ReadDir(0)
 	if err != nil {
 		return err
@@ -109,6 +110,10 @@ func processDirectory(filename string, db *sql.DB, persons map[string]int) error
 	for index := range files {
 		file := files[index]
 		name := file.Name()
+
+		if name[0] == '.' {
+			continue
+		}
 
 		if err := processFile(filename+"/"+name, db, persons); err != nil {
 			log.Printf("Failed to process : %s", name)
@@ -119,6 +124,7 @@ func processDirectory(filename string, db *sql.DB, persons map[string]int) error
 }
 
 func processFile(filename string, db *sql.DB, persons map[string]int) error {
+	log.Printf("Starting to process file: %s", filename)
 	reader, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("Error opening file %s (%v) ", filename, err)
@@ -127,8 +133,10 @@ func processFile(filename string, db *sql.DB, persons map[string]int) error {
 	currentFile = filename
 
 	var r io.Reader = reader
-
 	ext := path.Ext(filename)
+
+	log.Printf("file extension is: %s", ext)
+
 	if ext == "gz" {
 		r, err = gzip.NewReader(reader)
 		if err != nil {
