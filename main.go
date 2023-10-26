@@ -135,7 +135,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		fqp := strings.Split(fq, " ")
 		l := len(fqp)
 
-		person = strings.Trim(strings.ToLower(strings.Join(fqp[:l-1], " ")))
+		person = strings.TrimSpace(strings.ToLower(strings.Join(fqp[:l-1], " ")))
 		personid, ok := persons[person]
 
 		if !ok {
