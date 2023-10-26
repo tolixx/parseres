@@ -54,7 +54,7 @@ func loadPersons(db *sql.DB) (map[string]int, error) {
 			errs++
 			continue
 		}
-		t[name] = id
+		t[strings.ToLower(name)] = id
 		lines++
 		if lines%1000000 == 0 {
 			log.Printf("Loaded %d lines", lines)
@@ -135,7 +135,7 @@ func fillResults(db *sql.DB, reader io.Reader) error {
 		fqp := strings.Split(fq, " ")
 		l := len(fqp)
 
-		person = strings.Title(strings.Join(fqp[:l-1], " "))
+		person = strings.Trim(strings.ToLower(strings.Join(fqp[:l-1], " ")))
 		personid, ok := persons[person]
 
 		if !ok {
