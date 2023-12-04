@@ -99,12 +99,7 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 		opt(rp)
 	}
 
-	if err := rp.startTransactions(); err != nil {
-		return nil, fmt.Errorf("could not start transactions: %v", err)
-	}
-
 	rp.readers = map[string]chainReaderFunc{".gz": gzipReader, ".bz2": bzip2Reader}
-
 	return rp, nil
 }
 
@@ -112,8 +107,8 @@ func (r *resultParser) initReader(reader io.Reader, filename string) (io.Reader,
 	r.files++
 	r.filename = path.Base(filename)
 
-	if readChain, ok := r.readers[path.Ext(filename)]; ok {
-		return readChain(reader)
+	if readerProxy, ok := r.readers[path.Ext(filename)]; ok {
+		return readerProxy(reader)
 	}
 
 	return reader, nil
@@ -124,6 +119,11 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 	if err != nil {
 		return nil, err
 	}
+
+	if err := r.startTransactions(); err != nil {
+		return nil, fmt.Errorf("could not start transactions: %v", err)
+	}
+
 	return dirparser.NewDeepReader(rd, ":::"), nil
 }
 
@@ -148,11 +148,13 @@ func (r *resultParser) Parse(record []string) error {
 	se := systems[record[1]]
 	_, err := r.Main.Exec(personID, qt[se][t], se, record[2])
 	if err != nil {
+		log.Printf("Exec error: %v", err)
 		r.execErrors++
 		return err
 	}
 
 	r.inserts++
+
 	if r.inserts%r.chunkSize == 0 {
 		r.resetChunk()
 	}
@@ -185,26 +187,17 @@ func (r *resultParser) resetChunk() {
 }
 
 func (r *resultParser) loadPersons() error {
-	q := "SELECT id,name FROM persons"
 	r.persons = make(Persons)
-
-	res, err := r.db.Query(q)
+	res, err := r.db.Query("SELECT id,name FROM persons")
 
 	if err != nil {
 		return err
 	}
 
-	var id int
-	var name string
+	id, name := 0, ""
+	errs, lines := 0, 0
 
-	errs := 0
-	lines := 0
-
-	fmt.Printf("LOADING PERSONS [ ")
-	for i := 0; i < 89; i++ {
-		fmt.Printf(".")
-	}
-	fmt.Printf("]\r")
+	fmt.Printf("LOADING PERSONS [ %s ]\r", strings.Repeat(",", 89))
 	fmt.Printf("LOADING PERSONS [ ")
 
 	for res.Next() {
