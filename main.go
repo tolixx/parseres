@@ -11,6 +11,7 @@ type options struct {
 	Connection  string `long:"conn" default:"host=185.15.209.153 dbname=parsing user=parser password=N0_1caNw@iT sslmode=disable"`
 	StatPortion int    `short:"n" long:"num" default:"10000"`
 	ChunkSize   int    `short:"c" long:"chunk" default:"1000"`
+	Separator   string `short:"s" long:"separator" default:":::"`
 }
 
 var currentFile string
@@ -34,7 +35,11 @@ func main() {
 	}
 
 	defer db.Close()
-	resParser, err := NewResultParser(db, withStatPortion(opts.StatPortion), withChunk(opts.ChunkSize))
+
+	resParser, err := NewResultParser(db,
+		withStatPortion(opts.StatPortion),
+		withChunk(opts.ChunkSize),
+		withSeparator(opts.Separator))
 
 	if err != nil {
 		log.Fatalf("Could not create parser : %v", err)

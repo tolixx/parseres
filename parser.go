@@ -24,10 +24,12 @@ var qt = []map[string]int{{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit":
 type chainReaderFunc func(reader io.Reader) (io.Reader, error)
 
 func gzipReader(reader io.Reader) (io.Reader, error) {
+	log.Printf("Creating new gzip reader")
 	return gzip.NewReader(reader)
 }
 
 func bzip2Reader(reader io.Reader) (io.Reader, error) {
+	log.Printf("Creating new bzip2 reader")
 	return bzip2.NewReader(reader), nil
 }
 
@@ -43,6 +45,7 @@ type resultParser struct {
 
 	statPortion int
 	chunkSize   int
+	separator   string
 
 	start time.Time
 
@@ -71,11 +74,18 @@ func withChunk(value int) optionFunc {
 	}
 }
 
+func withSeparator(value string) optionFunc {
+	return func(parser *resultParser) {
+		parser.separator = value
+	}
+}
+
 func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 	rp := &resultParser{}
 	rp.db = db
 	rp.chunkSize = 1000
 	rp.statPortion = 10000
+	rp.separator = ":::"
 
 	err := rp.loadPersons()
 	if err != nil {
@@ -99,14 +109,10 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 }
 
 func (r *resultParser) initReader(reader io.Reader, filename string) (io.Reader, error) {
-
-	ext := path.Ext(filename)
-	readChain, ok := r.readers[ext]
-
 	r.files++
 	r.filename = path.Base(filename)
 
-	if ok {
+	if readChain, ok := r.readers[path.Ext(filename)]; ok {
 		return readChain(reader)
 	}
 
@@ -123,7 +129,7 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 
 func (r *resultParser) showStats() {
 	sp := float64(r.lines) / time.Now().Sub(r.start).Seconds()
-	log.Printf("#%d\tinserts:%d\terrors:%d\tbadLookups:%d\t%.2f\tfile:%d, %s", r.lines, r.inserts, r.execErrors, r.badLookups, sp, r.files, r.filename)
+	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%d\t%.2fL/s %s(%d)", r.lines, r.inserts, r.execErrors, r.badLookups, sp, r.filename, r.files)
 }
 
 func (r *resultParser) Parse(record []string) error {
