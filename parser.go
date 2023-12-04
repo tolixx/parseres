@@ -172,11 +172,12 @@ func (r *resultParser) loadPersons() error {
 	errs := 0
 	lines := 0
 
-	log.Printf("Starting loading persons...")
+	fmt.Printf("LOADING PERSONS [ ")
 	for i := 0; i < 89; i++ {
 		fmt.Printf(".")
 	}
-	fmt.Printf("\r")
+	fmt.Printf("]\r")
+	fmt.Printf("LOADING PERSONS [ ")
 
 	for res.Next() {
 		err := res.Scan(&id, &name)
@@ -192,6 +193,6 @@ func (r *resultParser) loadPersons() error {
 	}
 
 	fmt.Printf("\n")
-	log.Printf(" => Keywords loaded: %d ok, %d errors", lines, errs)
+	log.Printf("Persons loaded: %d ok, %d errors", lines, errs)
 	return nil
 }
