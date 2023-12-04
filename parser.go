@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/bzip2"
 	"compress/gzip"
 	"database/sql"
 	"errors"
@@ -20,6 +21,16 @@ var systems = map[string]int{"b": 0, "a": 1}
 var qt = []map[string]int{{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8},
 	{"inurl:facebook.com": 0, "inurl:instagram.com": 1, "inurl:tiktok.com": 2, "inurl:reddit.com": 3, "inurl:linkedin.com": 4, "inurl:pinterest.com": 5, "inurl:telegram.com": 6, "inurl:tumblr.com": 7, "inurl:patreon.com": 8}}
 
+type chainReaderFunc func(reader io.Reader) (io.Reader, error)
+
+func gzipReader(reader io.Reader) (io.Reader, error) {
+	return gzip.NewReader(reader)
+}
+
+func bzip2Reader(reader io.Reader) (io.Reader, error) {
+	return bzip2.NewReader(reader), nil
+}
+
 type resultParser struct {
 	db      *sql.DB
 	persons Persons
@@ -38,6 +49,8 @@ type resultParser struct {
 	filename string
 
 	Main *dbu.Pair
+
+	readers map[string]chainReaderFunc
 }
 
 var errBadLookup error = errors.New("BadLookup")
@@ -80,22 +93,24 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 		return nil, fmt.Errorf("could not start transactions: %v", err)
 	}
 
+	rp.readers = map[string]chainReaderFunc{".gz": gzipReader, ".bz2": bzip2Reader}
+
 	return rp, nil
 }
 
 func (r *resultParser) initReader(reader io.Reader, filename string) (io.Reader, error) {
 
-	if ext := path.Ext(filename); ext != ".gz" {
-		return reader, nil
+	ext := path.Ext(filename)
+	readChain, ok := r.readers[ext]
+
+	r.files++
+	r.filename = path.Base(filename)
+
+	if ok {
+		return readChain(reader)
 	}
 
-	rd, err := gzip.NewReader(reader)
-	if err != nil {
-		return nil, fmt.Errorf("could not open gz: %v", err)
-	}
-	r.files++
-	r.filename = filename
-	return rd, nil
+	return reader, nil
 }
 
 func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader, error) {
