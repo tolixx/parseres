@@ -46,12 +46,14 @@ type optionFunc func(parser *resultParser)
 
 func withStatPortion(value int) optionFunc {
 	return func(parser *resultParser) {
+		log.Printf("Setting stat portion to %d\n", value)
 		parser.statPortion = value
 	}
 }
 
 func withChunk(value int) optionFunc {
 	return func(parser *resultParser) {
+		log.Printf("Setting chunk size to %d\n", value)
 		parser.chunkSize = value
 	}
 }
@@ -66,11 +68,16 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	rp.Main = dbu.NewPair(db)
 	rp.start = time.Now()
 
 	for _, opt := range options {
 		opt(rp)
+	}
+
+	if err := rp.startTransactions(); err != nil {
+		return nil, fmt.Errorf("could not start transactions: %v", err)
 	}
 
 	return rp, nil
