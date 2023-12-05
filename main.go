@@ -4,6 +4,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/tolixx/dirparser"
 	"log"
+	"time"
 	"tolixx.org/parseres/dbu"
 )
 
@@ -45,9 +46,12 @@ func main() {
 		log.Fatalf("Could not create parser : %v", err)
 	}
 
+	start := time.Now()
 	if err := dirparser.ParsePath(args[0], resParser); err != nil {
 		log.Fatalf("Failed to parse an path %s : %v", path, err)
 	}
 
-	log.Printf("Parser completed")
+	diff := time.Now().Sub(start).String()
+
+	log.Printf("Parser completed in %s ", diff)
 }
