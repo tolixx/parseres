@@ -51,7 +51,5 @@ func main() {
 		log.Fatalf("Failed to parse an path %s : %v", path, err)
 	}
 
-	diff := time.Now().Sub(start).String()
-
-	log.Printf("Parser completed in %s ", diff)
+	log.Printf("Parser completed in %s ", time.Now().Sub(start))
 }
