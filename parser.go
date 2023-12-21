@@ -52,7 +52,6 @@ type optionFunc func(parser *resultParser)
 
 func withStatPortion(value int) optionFunc {
 	return func(parser *resultParser) {
-		log.Printf("Setting stat portion to %d\n", value)
 		parser.statPortion = value
 	}
 }
@@ -65,7 +64,6 @@ func withFileExt(ext string, readerFunc chainReaderFunc) optionFunc {
 
 func withChunk(value int) optionFunc {
 	return func(parser *resultParser) {
-		log.Printf("Setting chunk size to %d\n", value)
 		parser.chunkSize = value
 	}
 }
