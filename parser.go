@@ -15,23 +15,17 @@ import (
 	"tolixx.org/parseres/dbu"
 )
 
+var (
+	systems = map[string]int{"b": 0, "a": 1}
+	qt      = []map[string]int{
+		{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8},
+		{"inurl:facebook.com": 0, "inurl:instagram.com": 1, "inurl:tiktok.com": 2, "inurl:reddit.com": 3, "inurl:linkedin.com": 4, "inurl:pinterest.com": 5, "inurl:telegram.com": 6, "inurl:tumblr.com": 7, "inurl:patreon.com": 8}}
+
+	errBadLookup = errors.New("BadLookup")
+)
+
 type Persons map[string]int
-
-var systems = map[string]int{"b": 0, "a": 1}
-var qt = []map[string]int{{"facebook": 0, "instagram": 1, "tiktok": 2, "reddit": 3, "linkedin": 4, "pinterest": 5, "telegram": 6, "tumblr": 7, "patreon": 8},
-	{"inurl:facebook.com": 0, "inurl:instagram.com": 1, "inurl:tiktok.com": 2, "inurl:reddit.com": 3, "inurl:linkedin.com": 4, "inurl:pinterest.com": 5, "inurl:telegram.com": 6, "inurl:tumblr.com": 7, "inurl:patreon.com": 8}}
-
 type chainReaderFunc func(reader io.Reader) (io.Reader, error)
-
-func gzipReader(reader io.Reader) (io.Reader, error) {
-	log.Printf("Creating new gzip reader")
-	return gzip.NewReader(reader)
-}
-
-func bzip2Reader(reader io.Reader) (io.Reader, error) {
-	log.Printf("Creating new bzip2 reader")
-	return bzip2.NewReader(reader), nil
-}
 
 type resultParser struct {
 	db      *sql.DB
@@ -42,21 +36,17 @@ type resultParser struct {
 	lines      int
 	inserts    int
 	files      int
+	filename   string
 
 	statPortion int
 	chunkSize   int
 	separator   string
 
 	start time.Time
-
-	filename string
-
-	Main *dbu.Pair
+	Main  *dbu.Pair
 
 	readers map[string]chainReaderFunc
 }
-
-var errBadLookup error = errors.New("BadLookup")
 
 type optionFunc func(parser *resultParser)
 
@@ -64,6 +54,12 @@ func withStatPortion(value int) optionFunc {
 	return func(parser *resultParser) {
 		log.Printf("Setting stat portion to %d\n", value)
 		parser.statPortion = value
+	}
+}
+
+func withFileExt(ext string, readerFunc chainReaderFunc) optionFunc {
+	return func(parser *resultParser) {
+		parser.readers[ext] = readerFunc
 	}
 }
 
@@ -80,12 +76,32 @@ func withSeparator(value string) optionFunc {
 	}
 }
 
+func gzipReader(reader io.Reader) (io.Reader, error) {
+	log.Printf("Creating new gzip reader")
+	return gzip.NewReader(reader)
+}
+
+func bzip2Reader(reader io.Reader) (io.Reader, error) {
+	log.Printf("Creating new bzip2 reader")
+	return bzip2.NewReader(reader), nil
+}
+
+func createParserDefaults(db *sql.DB) *resultParser {
+	return &resultParser{
+		db:          db,
+		chunkSize:   1000,
+		statPortion: 10000,
+		separator:   ":::",
+	}
+}
+
 func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
-	rp := &resultParser{}
-	rp.db = db
-	rp.chunkSize = 1000
-	rp.statPortion = 10000
-	rp.separator = ":::"
+	rp := createParserDefaults(db)
+	rp.readers = map[string]chainReaderFunc{".gz": gzipReader, ".bz2": bzip2Reader}
+
+	for _, opt := range options {
+		opt(rp)
+	}
 
 	err := rp.loadPersons()
 	if err != nil {
@@ -95,11 +111,6 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 	rp.Main = dbu.NewPair(db)
 	rp.start = time.Now()
 
-	for _, opt := range options {
-		opt(rp)
-	}
-
-	rp.readers = map[string]chainReaderFunc{".gz": gzipReader, ".bz2": bzip2Reader}
 	return rp, nil
 }
 
@@ -110,7 +121,6 @@ func (r *resultParser) initReader(reader io.Reader, filename string) (io.Reader,
 	if readerProxy, ok := r.readers[path.Ext(filename)]; ok {
 		return readerProxy(reader)
 	}
-
 	return reader, nil
 }
 
