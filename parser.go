@@ -150,12 +150,15 @@ func (r *resultParser) Parse(record []string) error {
 		r.showStats()
 	}
 	person, t := r.parseKey(record[0])
-	personID, ok := r.persons[person]
+	personID, _ := r.persons[person]
 
-	if !ok {
-		r.badLookups++
-		return errBadLookup
-	}
+	/*
+		if !ok {
+			r.badLookups++
+			return errBadLookup
+		}
+
+	*/
 
 	url := record[2]
 	title := record[3]
