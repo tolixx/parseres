@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/jessevdk/go-flags"
 	"github.com/tolixx/dirparser"
@@ -55,4 +56,33 @@ func startParser() error {
 		return err
 	}
 	return dirparser.ParsePath(path, resParser)
+}
+
+func fillFiles() error {
+	var opts options
+	args, err := flags.Parse(&opts)
+	if err != nil {
+		return err
+	}
+
+	path := args[0]
+	db, err := dbu.NewDb(opts.Connection)
+	if err != nil {
+		return nil
+	}
+	defer db.Close()
+	return dirparser.ProcessPath(path, newFileProcessor(db))
+}
+
+type fileProcessor struct {
+	db *sql.DB
+}
+
+func (f *fileProcessor) Process(filepath string) error {
+	fmt.Println(filepath)
+	return nil
+}
+
+func newFileProcessor(db *sql.DB) dirparser.Processor {
+	return &fileProcessor{db: db}
 }

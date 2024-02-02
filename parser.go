@@ -9,6 +9,7 @@ import (
 	"github.com/tolixx/dirparser"
 	"io"
 	"log"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -131,7 +132,6 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 	if err := r.startTransactions(); err != nil {
 		return nil, fmt.Errorf("could not start transactions: %v", err)
 	}
-
 	return dirparser.NewDeepReader(rd, ":::"), nil
 }
 
@@ -146,15 +146,22 @@ func (r *resultParser) Parse(record []string) error {
 		r.showStats()
 	}
 	person, t := r.parseKey(record[0])
-
 	personID, ok := r.persons[person]
+
 	if !ok {
 		r.badLookups++
 		return errBadLookup
 	}
 
+	url := record[2]
+	title := record[3]
+
+	snippet := strings.Join(record[4:], r.separator)
+	log.Printf("%s %s %s", url, title, snippet)
+	os.Exit(2)
+
 	se := systems[record[1]]
-	_, err := r.Main.Exec(personID, qt[se][t], se, record[2])
+	_, err := r.Main.Exec(personID, qt[se][t], se, url, title, snippet)
 	if err != nil {
 		log.Printf("Exec error: %v", err)
 		r.execErrors++
@@ -171,7 +178,7 @@ func (r *resultParser) Parse(record []string) error {
 }
 
 func (r *resultParser) startTransactions() error {
-	return r.Main.Start("new_results", "personid", "qt", "se", "url")
+	return r.Main.Start("new_results", "personid", "qt", "se", "url", "title", "snippet")
 }
 
 func (r *resultParser) Close() error {

@@ -4,5 +4,7 @@ github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/tolixx/dirparser v0.0.0-20231204124917-33de2b073dfe h1:nTNp10ENptbHVBe2LCufJESI8jfhLqlzPuO/K+JjUjM=
 github.com/tolixx/dirparser v0.0.0-20231204124917-33de2b073dfe/go.mod h1:vSE5D5g70aokHZS1Y2PnHYBjn6iXsRDca3zvcOk0GJg=
+github.com/tolixx/dirparser v0.0.0-20231222213600-94234f97cde1 h1:+/TjnIdNgGKcaVLfMhkNnJQ7frZ57sYAU3dQCg38fNg=
+github.com/tolixx/dirparser v0.0.0-20231222213600-94234f97cde1/go.mod h1:vSE5D5g70aokHZS1Y2PnHYBjn6iXsRDca3zvcOk0GJg=
 golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 h1:EZ2mChiOa8udjfp6rRmswTbtZN/QzUQp4ptM4rnjHvc=
 golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
