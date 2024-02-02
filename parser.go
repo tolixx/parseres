@@ -102,10 +102,12 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 		opt(rp)
 	}
 
-	err := rp.loadPersons()
-	if err != nil {
-		return nil, err
-	}
+	/*
+		err := rp.loadPersons()
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	rp.Main = dbu.NewPair(db)
 	rp.start = time.Now()
@@ -126,10 +128,12 @@ func (r *resultParser) initReader(reader io.Reader, filename string) (io.Reader,
 func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader, error) {
 	rd, err := r.initReader(reader, filename)
 	if err != nil {
+		log.Printf("%v", err)
 		return nil, err
 	}
 
 	if err := r.startTransactions(); err != nil {
+		log.Printf("could not start transactions: %v", err)
 		return nil, fmt.Errorf("could not start transactions: %v", err)
 	}
 	return dirparser.NewDeepReader(rd, ":::"), nil
