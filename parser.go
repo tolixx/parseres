@@ -9,7 +9,6 @@ import (
 	"github.com/tolixx/dirparser"
 	"io"
 	"log"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -34,6 +33,7 @@ type resultParser struct {
 
 	badLookups int
 	execErrors int
+	overLen    int
 	lines      int
 	inserts    int
 	files      int
@@ -102,12 +102,10 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 		opt(rp)
 	}
 
-	/*
-		err := rp.loadPersons()
-		if err != nil {
-			return nil, err
-		}
-	*/
+	err := rp.loadPersons()
+	if err != nil {
+		return nil, err
+	}
 
 	rp.Main = dbu.NewPair(db)
 	rp.start = time.Now()
@@ -141,7 +139,7 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 
 func (r *resultParser) showStats() {
 	sp := float64(r.lines) / time.Now().Sub(r.start).Seconds()
-	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%d\t%.2fL/s %s(%d)", r.lines, r.inserts, r.execErrors, r.badLookups, sp, r.filename, r.files)
+	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%doverLen:%d\t%.2fL/s %s(%d)", r.lines, r.inserts, r.execErrors, r.badLookups, r.overLen, sp, r.filename, r.files)
 }
 
 func (r *resultParser) Parse(record []string) error {
@@ -150,23 +148,21 @@ func (r *resultParser) Parse(record []string) error {
 		r.showStats()
 	}
 	person, t := r.parseKey(record[0])
-	personID, _ := r.persons[person]
+	personID, ok := r.persons[person]
 
-	/*
-		if !ok {
-			r.badLookups++
-			return errBadLookup
-		}
+	if !ok {
+		r.badLookups++
+		return errBadLookup
+	}
 
-	*/
+	if len(record) > 5 {
+		r.overLen++
+	}
 
 	url := record[2]
 	title := record[3]
 
 	snippet := strings.Join(record[4:], r.separator)
-	log.Printf("record : %v", record)
-	log.Printf("url: %s  title: %s snippet : %s", url, title, snippet)
-	os.Exit(2)
 
 	se := systems[record[1]]
 	_, err := r.Main.Exec(personID, qt[se][t], se, url, title, snippet)
