@@ -164,7 +164,8 @@ func (r *resultParser) Parse(record []string) error {
 	title := record[3]
 
 	snippet := strings.Join(record[4:], r.separator)
-	log.Printf("%s %s %s", url, title, snippet)
+	log.Printf("%v", record)
+	log.Printf("url: %s  title: %s snippet : %s", url, title, snippet)
 	os.Exit(2)
 
 	se := systems[record[1]]
