@@ -182,7 +182,7 @@ func (r *resultParser) Parse(record []string) error {
 }
 
 func (r *resultParser) startTransactions() error {
-	return r.Main.Start("new_results", "personid", "qt", "se", "url", "title", "snippet")
+	return r.Main.Start("new_results_full", "personid", "qt", "se", "url", "title", "snippet")
 }
 
 func (r *resultParser) Close() error {
