@@ -148,9 +148,9 @@ func (r *resultParser) Parse(record []string) error {
 		r.showStats()
 	}
 	person, t := r.parseKey(record[0])
-	personID, ok := r.persons[person]
+	_, ok := r.persons[person]
 
-	if !ok {
+	if ok {
 		r.badLookups++
 		return errBadLookup
 	}
@@ -165,7 +165,7 @@ func (r *resultParser) Parse(record []string) error {
 	snippet := strings.Join(record[4:], r.separator)
 
 	se := systems[record[1]]
-	_, err := r.Main.Exec(personID, qt[se][t], se, url, title, snippet)
+	_, err := r.Main.Exec(person, qt[se][t], se, url, title, snippet)
 	if err != nil {
 		log.Printf("Exec error: %v", err)
 		r.execErrors++
@@ -182,7 +182,8 @@ func (r *resultParser) Parse(record []string) error {
 }
 
 func (r *resultParser) startTransactions() error {
-	return r.Main.Start("new_results_full", "personid", "qt", "se", "url", "title", "snippet")
+	//return r.Main.Start("new_results_full", "personid", "qt", "se", "url", "title", "snippet")
+	return r.Main.Start("new_results_missing", "name", "qt", "se", "url", "title", "snippet")
 }
 
 func (r *resultParser) Close() error {
