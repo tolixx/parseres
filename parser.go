@@ -174,6 +174,7 @@ func (r *resultParser) Parse(record []string) error {
 	u := record[2]
 	pu, err := url.Parse(u)
 	if err != nil {
+		log.Printf("%s %v", u, err)
 		r.parseErrs++
 		return nil
 	}
