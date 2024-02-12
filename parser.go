@@ -151,7 +151,7 @@ func (r *resultParser) showStats() {
 	sp := float64(r.lines) / time.Now().Sub(r.start).Seconds()
 	log.Printf("#%d\tinserted:%d\tnew_hosts:%d\terrors:%d\tnoPerson:%d\toverLen:%d\tparseErrs:%d\temptyHosts:%d\t%.2fL/s %s(%d)",
 		r.lines, r.inserts, r.hosts.getInserts(), r.execErrors, r.badLookups,
-		r.parseErrs, r.emptyHosts, r.overLen, sp, r.filename, r.files)
+		r.overLen, r.parseErrs, r.emptyHosts, sp, r.filename, r.files)
 }
 
 func (r *resultParser) Parse(record []string) error {
