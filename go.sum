@@ -6,5 +6,9 @@ github.com/tolixx/dirparser v0.0.0-20231204124917-33de2b073dfe h1:nTNp10ENptbHVB
 github.com/tolixx/dirparser v0.0.0-20231204124917-33de2b073dfe/go.mod h1:vSE5D5g70aokHZS1Y2PnHYBjn6iXsRDca3zvcOk0GJg=
 github.com/tolixx/dirparser v0.0.0-20231222213600-94234f97cde1 h1:+/TjnIdNgGKcaVLfMhkNnJQ7frZ57sYAU3dQCg38fNg=
 github.com/tolixx/dirparser v0.0.0-20231222213600-94234f97cde1/go.mod h1:vSE5D5g70aokHZS1Y2PnHYBjn6iXsRDca3zvcOk0GJg=
+golang.org/x/net v0.21.0 h1:AQyQV4dYCvJ7vGmJyKki9+PBdyvhkSd8EIx/qb0AYv4=
+golang.org/x/net v0.21.0/go.mod h1:bIjVDfnllIU7BJ2DNgfnXvpSvtn8VRwhlsaeUTyUS44=
 golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 h1:EZ2mChiOa8udjfp6rRmswTbtZN/QzUQp4ptM4rnjHvc=
 golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.17.0 h1:25cE3gD+tdBA7lp7QfhuV+rJiE9YXTcS3VG1SqssI/Y=
+golang.org/x/sys v0.17.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=

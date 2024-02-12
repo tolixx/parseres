@@ -149,8 +149,9 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 
 func (r *resultParser) showStats() {
 	sp := float64(r.lines) / time.Now().Sub(r.start).Seconds()
-	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%d\toverLen:%d\tparseErrs:%d\temptyHosts:%d\t%.2fL/s %s(%d)",
-		r.lines, r.inserts, r.execErrors, r.badLookups, r.parseErrs, r.emptyHosts, r.overLen, sp, r.filename, r.files)
+	log.Printf("#%d\tinserted:%d\tnew_hosts:%d\terrors:%d\tnoPerson:%d\toverLen:%d\tparseErrs:%d\temptyHosts:%d\t%.2fL/s %s(%d)",
+		r.lines, r.inserts, r.hosts.getInserts(), r.execErrors, r.badLookups,
+		r.parseErrs, r.emptyHosts, r.overLen, sp, r.filename, r.files)
 }
 
 func (r *resultParser) Parse(record []string) error {
@@ -161,7 +162,7 @@ func (r *resultParser) Parse(record []string) error {
 	person, t := r.parseKey(record[0])
 	personid, ok := r.persons[person]
 
-	if ok {
+	if !ok {
 		r.badLookups++
 		return errBadLookup
 	}
@@ -187,6 +188,7 @@ func (r *resultParser) Parse(record []string) error {
 
 	hostid, err := r.hosts.getID(pu.Host)
 	if err != nil {
+		log.Printf("Failed to insert %s %v", pu.Host, err)
 		return nil
 	}
 
