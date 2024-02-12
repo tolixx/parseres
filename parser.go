@@ -106,13 +106,13 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 	}
 
 	var err error
-	rp.persons, err = loadPersons(db)
-
+	rp.hosts, err = NewHosts(db)
 	if err != nil {
 		return nil, err
 	}
 
-	rp.hosts, err = NewHosts(db)
+	rp.persons, err = loadPersons(db)
+
 	if err != nil {
 		return nil, err
 	}
