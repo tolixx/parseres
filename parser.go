@@ -9,6 +9,7 @@ import (
 	"github.com/tolixx/dirparser"
 	"io"
 	"log"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -24,16 +25,18 @@ var (
 	errBadLookup = errors.New("BadLookup")
 )
 
-type Persons map[string]int
 type chainReaderFunc func(reader io.Reader) (io.Reader, error)
 
 type resultParser struct {
 	db      *sql.DB
 	persons Persons
+	hosts   *Hosts
 
 	badLookups int
 	execErrors int
 	overLen    int
+	parseErrs  int
+	emptyHosts int
 	lines      int
 	inserts    int
 	files      int
@@ -102,7 +105,14 @@ func NewResultParser(db *sql.DB, options ...optionFunc) (*resultParser, error) {
 		opt(rp)
 	}
 
-	err := rp.loadPersons()
+	var err error
+	rp.persons, err = loadPersons(db)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rp.hosts, err = NewHosts(db)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +149,8 @@ func (r *resultParser) Init(reader io.Reader, filename string) (dirparser.Reader
 
 func (r *resultParser) showStats() {
 	sp := float64(r.lines) / time.Now().Sub(r.start).Seconds()
-	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%doverLen:%d\t%.2fL/s %s(%d)", r.lines, r.inserts, r.execErrors, r.badLookups, r.overLen, sp, r.filename, r.files)
+	log.Printf("#%d\tinserted:%d\terrors:%d\tnoPerson:%d\toverLen:%d\tparseErrs:%d\temptyHosts:%d\t%.2fL/s %s(%d)",
+		r.lines, r.inserts, r.execErrors, r.badLookups, r.parseErrs, r.emptyHosts, r.overLen, sp, r.filename, r.files)
 }
 
 func (r *resultParser) Parse(record []string) error {
@@ -148,7 +159,7 @@ func (r *resultParser) Parse(record []string) error {
 		r.showStats()
 	}
 	person, t := r.parseKey(record[0])
-	_, ok := r.persons[person]
+	personid, ok := r.persons[person]
 
 	if ok {
 		r.badLookups++
@@ -159,13 +170,29 @@ func (r *resultParser) Parse(record []string) error {
 		r.overLen++
 	}
 
-	url := record[2]
-	title := record[3]
+	u := record[2]
+	pu, err := url.Parse(u)
+	if err != nil {
+		r.parseErrs++
+		return nil
+	}
 
+	if pu.Host == "" {
+		r.emptyHosts++
+		return nil
+	}
+
+	title := record[3]
 	snippet := strings.Join(record[4:], r.separator)
 
+	hostid, err := r.hosts.getID(pu.Host)
+	if err != nil {
+		return nil
+	}
+
 	se := systems[record[1]]
-	_, err := r.Main.Exec(person, qt[se][t], se, url, title, snippet)
+	_, err = r.Main.Exec(personid, qt[se][t], se, u, title, snippet, hostid)
+
 	if err != nil {
 		log.Printf("Exec error: %v", err)
 		r.execErrors++
@@ -183,10 +210,11 @@ func (r *resultParser) Parse(record []string) error {
 
 func (r *resultParser) startTransactions() error {
 	//return r.Main.Start("new_results_full", "personid", "qt", "se", "url", "title", "snippet")
-	return r.Main.Start("new_results_missing", "name", "qt", "se", "url", "title", "snippet")
+	return r.Main.Start("new_results_full", "personid", "qt", "se", "url", "title", "snippet", "hostid")
 }
 
 func (r *resultParser) Close() error {
+
 	return r.Main.Commit()
 }
 
@@ -204,36 +232,4 @@ func (r *resultParser) resetChunk() {
 		log.Printf(" commit error : %v", err)
 	}
 	r.startTransactions()
-}
-
-func (r *resultParser) loadPersons() error {
-	r.persons = make(Persons)
-	res, err := r.db.Query("SELECT id,name FROM persons")
-
-	if err != nil {
-		return err
-	}
-
-	id, name := 0, ""
-	errs, lines := 0, 0
-
-	title := "LOADING PERSONS"
-	fmt.Printf("%s [ %s ]\r%s [ ", title, strings.Repeat(".", 89), title)
-
-	for res.Next() {
-		err := res.Scan(&id, &name)
-		if err != nil {
-			errs++
-			continue
-		}
-		r.persons[strings.ToLower(name)] = id
-		lines++
-		if lines%1000000 == 0 {
-			fmt.Printf("o")
-		}
-	}
-
-	fmt.Printf("\n")
-	log.Printf("DONE [ %d ok, %d errors ]", lines, errs)
-	return nil
 }
